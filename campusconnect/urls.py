@@ -16,15 +16,39 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from chat import views
 from django.contrib.auth.models import User
 
-urlpatterns = [
+# Import Channels consumers
+from chat import consumers
+
+http_urlpatterns = [
     path("admin/", admin.site.urls),
     path('', include('chat.urls')),
     path('chatbot/', include('chatbot.urls', namespace='chatbot')),
-    path('accounts/', include('django.contrib.auth.urls')),  # Django'nun varsayılan auth URL'lerini ekliyoruz
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path('accounts/', include('django.contrib.auth.urls')),
+]
+
+websocket_urlpatterns = [
+    re_path(r'ws/chat/(?P<room_name>.+)/$', consumers.ChatConsumer.as_asgi()),
+    re_path(r'ws/notifications/(?P<user_id>\d+)/$', consumers.NotificationConsumer.as_asgi()),
+]
+
+urlpatterns = http_urlpatterns + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# ASGI application for Channels
+# NOTE: This part is for the ASGI server (Daphne/Uvicorn) and is typically in asgi.py
+# However, for clarity in demonstrating both URL types in one file, it's shown here.
+# In a real project, you would configure this in your asgi.py file.
+# from channels.routing import ProtocolTypeRouter, URLRouter
+# from channels.auth import AuthMiddlewareStack
+
+# application = ProtocolTypeRouter({
+#     "http": URLRouter(http_urlpatterns),
+#     "websocket": AuthMiddlewareStack(
+#         URLRouter(websocket_urlpatterns)
+#     ),
+# })

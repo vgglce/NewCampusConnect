@@ -79,6 +79,45 @@ def chat_room(request, room_name):
     })
 
 @login_required
+def direct_message_room(request, user_id):
+    # Get the target user (the friend) or return 404 if not found
+    target_user = get_object_or_404(User, id=user_id)
+
+    # Ensure the target user is a friend of the current user (optional but recommended for DMs)
+    # You might want to check this here if only friends should be able to DM each other
+    # from friendship.models import Friend
+    # if not Friend.objects.are_friends(request.user, target_user):
+    #     messages.error(request, f"You are not friends with {target_user.username}.")
+    #     return redirect('profile') # Or redirect to a user list page
+
+    # Create a unique room name for direct messages
+    # Use sorted user IDs to ensure the room name is the same regardless of who initiates the chat
+    user_ids = sorted([request.user.id, target_user.id])
+    room_name = f'dm_{user_ids[0]}_{user_ids[1]}'
+
+    # For direct messages, we don't necessarily need a ChatRoom model instance
+    # We can directly use the generated room_name for the WebSocket connection
+    # However, if you want to store direct messages like group chat messages
+    # and potentially list past DM conversations, you might create/get a ChatRoom instance here.
+    # For now, let's just pass the room_name and target_user to the template.
+
+    # Fetch existing messages for this DM room if you are storing them in the Message model
+    # Assuming Message model has a 'room' field which we could potentially use to store DM room names
+    # Or you might need a different model/approach for DMs vs group chats
+    # Let's adapt the existing structure to use room_name directly for fetching messages if possible
+    # (Requires changes in Message model or consumer logic to handle DM room names)
+    # For simplicity now, let's just render the template with the room name and target user.
+
+    # You might reuse the existing chat room template or create a new one for DMs
+    # Using the existing one for now:
+    return render(request, 'chat/room.html', {
+        'room_name': room_name,
+        'target_user': target_user, # Pass target user info to display name etc.
+        'room': None, # Explicitly pass room as None for DMs
+        # 'messages': [] # You might load past messages here
+    })
+
+@login_required
 def create_room(request):
     if request.method == 'POST':
         form = ChatRoomForm(request.POST, user=request.user)
@@ -156,6 +195,14 @@ def send_friend_request(request, user_id):
 def accept_friend_request(request, request_id):
     friend_request = FriendshipRequest.objects.get(id=request_id)
     friend_request.accept()
+    messages.success(request, 'Friend request accepted!')
+    return redirect('user_list')
+
+@login_required
+def reject_friend_request(request, request_id):
+    friend_request = FriendshipRequest.objects.get(id=request_id)
+    friend_request.reject()
+    messages.info(request, 'Friend request rejected.')
     return redirect('user_list')
 
 @login_required
@@ -163,6 +210,14 @@ def follow_user(request, user_id):
     user_to_follow = get_object_or_404(User, id=user_id)
     profile = request.user.userprofile
     profile.following.add(user_to_follow.userprofile)
+    messages.success(request, f'You are now following {user_to_follow.username}!')
+    return redirect('user_list')
+
+@login_required
+def remove_friend(request, user_id):
+    other_user = get_object_or_404(User, id=user_id)
+    Friend.objects.remove_friend(request.user, other_user)
+    messages.success(request, f'{other_user.username} is no longer your friend.')
     return redirect('user_list')
 
 def login_view(request):

@@ -1,17 +1,27 @@
 {% extends 'chat/base.html' %}
 
-{% block title %}{{ room.name }} - Campus Connect{% endblock %}
+{% block title %}
+    {% if target_user %}
+        {{ target_user.username }} ile Sohbet
+    {% else %}
+        {{ room.name }} - Campus Connect
+    {% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid h-100">
     <div class="card">
         <div class="card-header bg-primary text-white">
             <h5 class="mb-0">
-                <i class="fas fa-comments me-2"></i>{{ room.name }}
-                {% if room.is_private %}
-                    <span class="badge bg-warning text-dark ms-2">
-                        <i class="fas fa-lock me-1"></i>Private
-                    </span>
+                {% if target_user %}
+                    <i class="fas fa-comments me-2"></i>{{ target_user.get_full_name|default:target_user.username }} ile Sohbet
+                {% else %}
+                    <i class="fas fa-comments me-2"></i>{{ room.name }}
+                    {% if room.is_private %}
+                        <span class="badge bg-warning text-dark ms-2">
+                            <i class="fas fa-lock me-1"></i>Private
+                        </span>
+                    {% endif %}
                 {% endif %}
             </h5>
         </div>
@@ -59,16 +69,26 @@
 
 {% block extra_js %}
 <script>
-    const roomName = "{{ room.name }}";
+    // Use roomName passed from view for DMs, or room.name for group chats
+    let roomName;
+    {% if room_name %}
+        roomName = "{{ room_name }}";
+    {% elif room %}
+        roomName = "{{ room.name }}";
+    {% else %}
+        console.error("Room name is not provided.");
+        // Optionally handle this error case in the UI
+    {% endif %}
+
     const currentUserId = "{{ request.user.id }}";
     const chatSocket = new WebSocket(
         'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
     );
 
-    console.log('WebSocket bağlantısı kurulmaya çalışılıyor...');
+    console.log('WebSocket bağlantısı kurulmaya çalışılıyor...', roomName);
 
     chatSocket.onopen = function(e) {
-        console.log('WebSocket bağlantısı başarıyla kuruldu');
+        console.log('WebSocket bağlantısı başarıyla kuruldu', roomName);
     };
 
     const messagesList = document.getElementById('chat-messages');

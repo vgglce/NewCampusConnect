@@ -11,7 +11,10 @@ urlpatterns = [
     path('users/', views.user_list, name='user_list'),
     path('send-friend-request/<int:user_id>/', views.send_friend_request, name='send_friend_request'),
     path('accept-friend-request/<int:request_id>/', views.accept_friend_request, name='accept_friend_request'),
+    path('reject-friend-request/<int:request_id>/', views.reject_friend_request, name='reject_friend_request'),
     path('follow/<int:user_id>/', views.follow_user, name='follow_user'),
+    path('remove-friend/<int:user_id>/', views.remove_friend, name='remove_friend'),
     path('register/', views.register, name='register'),
     path('join-room/<str:room_name>/', views.join_room, name='join_room'),
+    path('dm/<int:user_id>/', views.direct_message_room, name='direct_message'),
 ] 

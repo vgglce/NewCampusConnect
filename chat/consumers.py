@@ -81,11 +81,66 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     @database_sync_to_async
     def save_message(self, message):
-        room = ChatRoom.objects.get(name=self.room_name)
-        return Message.objects.create(
-            room=room,
-            sender=self.scope['user'],
-            content=message,
-            timestamp=timezone.now(),
-            is_read=False
-        ) 
+        # Check if it's a direct message room
+        if self.room_name.startswith('dm_'):
+            # For direct messages, we might not save to the ChatRoom model directly
+            # or we might need a different saving mechanism.
+            # For now, skip saving DMs to the database via this method.
+            logger.info(f'Skipping database save for direct message room: {self.room_name}')
+            # Return a dummy object with a timestamp for the consumer to use
+            class DummyMessage:
+                def __init__(self, timestamp):
+                    self.timestamp = timestamp
+            return DummyMessage(timezone.now())
+
+        # Existing logic for group chat rooms
+        try:
+            room = ChatRoom.objects.get(name=self.room_name)
+            saved_message = Message.objects.create(
+                room=room,
+                sender=self.scope['user'],
+                content=message,
+                timestamp=timezone.now(),
+                is_read=False
+            )
+            logger.info(f'Group message saved to database for room {self.room_name}')
+            return saved_message
+        except ChatRoom.DoesNotExist:
+            logger.error(f'ChatRoom not found for room name: {self.room_name}')
+            # Handle the case where a ChatRoom is expected but not found
+            # This might happen if a user tries to send a message to a non-existent group room
+            return None # Indicate that saving failed
+
+class NotificationConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user_id = self.scope['user'].id
+        self.group_name = f'notifications_{self.user_id}'
+
+        print(f"Notification WebSocket connecting for user: {self.user_id}, group: {self.group_name}")
+        # Abone olunan gruba katıl
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name
+        )
+
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        # Gruptan ayrıl
+        await self.channel_layer.group_discard(
+            self.group_name,
+            self.channel_name
+        )
+        print(f"Notification WebSocket disconnected for user: {self.user_id}, code: {close_code}")
+
+    # Gruptan gelen mesajları işle
+    async def friend_request_notification(self, event):
+        print(f"Received friend request notification event: {event}")
+        # Bildirimi WebSocket üzerinden gönder
+        await self.send(text_data=json.dumps({
+            'type': 'friend_request',
+            'message': event['message'],
+            'from_user_id': event['from_user_id'],
+            'from_user_username': event['from_user_username'],
+        }))
+        print("Friend request notification sent to WebSocket") 

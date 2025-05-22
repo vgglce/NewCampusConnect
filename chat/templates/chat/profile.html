@@ -16,6 +16,7 @@
                         <img src="{% static 'images/default_profile.png' %}" alt="Default Profile" class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
                     {% endif %}
                     <h4>{{ user.get_full_name|default:user.username }}</h4>
+                    <p class="text-muted">@{{ user.username }}</p>
                     {% if profile.university %}
                         <p class="text-muted">{{ profile.university }} - {{ profile.department }}</p>
                     {% endif %}
@@ -28,7 +29,10 @@
                     {% if friends %}
                         <ul class="list-unstyled">
                             {% for friend in friends %}
-                                <li>{{ friend.username }}</li> {# veya friend.get_full_name #}
+                                <li class="d-flex justify-content-between align-items-center">
+                                    {{ friend.username }} {# veya friend.get_full_name #}
+                                    <a href="{% url 'direct_message' friend.id %}" class="btn btn-primary btn-sm">Chat</a>
+                                </li>
                             {% endfor %}
                         </ul>
                     {% else %}

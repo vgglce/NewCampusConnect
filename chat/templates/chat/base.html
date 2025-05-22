@@ -227,6 +227,35 @@
     {% block extra_js %}{% endblock %}
 
     <script>
+        // Notification WebSocket
+        {% if user.is_authenticated %}
+        const userId = "{{ request.user.id }}";
+        const notificationSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/notifications/' + userId + '/'
+        );
+
+        notificationSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'friend_request') {
+                alert(`Yeni Arkadaşlık İsteği: ${data.from_user_username} size arkadaşlık isteği gönderdi.`);
+                // Kullanıcı listesi sayfasını yenilemek veya bildirim alanını güncellemek gerekebilir
+                // window.location.reload(); // Sayfayı yenilemek isterseniz
+            }
+        };
+
+        notificationSocket.onopen = function(e) {
+            console.log('Notification WebSocket bağlantısı kuruldu');
+        };
+
+        notificationSocket.onerror = function(e) {
+            console.error('Notification WebSocket hatası:', e);
+        };
+
+        notificationSocket.onclose = function(e) {
+            console.log('Notification WebSocket bağlantısı kapandı');
+        };
+        {% endif %}
+
         document.addEventListener('DOMContentLoaded', function() {
             const chatbotForm = document.getElementById('chatbot-form');
             const chatbotInput = document.getElementById('chatbot-input');
