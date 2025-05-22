@@ -6,96 +6,147 @@
 {% block content %}
 <div class="container mt-4">
     <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Profil Bilgileri</h4>
+        <!-- Left Column -->
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-body text-center">
+                    {% if profile.profile_photo %}
+                        <img src="{{ profile.profile_photo.url }}" alt="Profile Photo" class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                    {% else %}
+                        <img src="{% static 'images/default_profile.png' %}" alt="Default Profile" class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                    {% endif %}
+                    <h4>{{ user.get_full_name|default:user.username }}</h4>
+                    {% if profile.university %}
+                        <p class="text-muted">{{ profile.university }} - {{ profile.department }}</p>
+                    {% endif %}
                 </div>
+            </div>
+
+            <div class="card mb-3">
                 <div class="card-body">
-                    <form method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        
-                        <div class="text-center mb-4">
-                            {% if user.userprofile.profile_photo %}
-                                <img src="{{ user.userprofile.profile_photo.url }}" alt="Profile Photo" class="rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
-                            {% else %}
-                                <img src="{% static 'images/default_profile.png' %}" alt="Default Profile" class="rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="profile_photo" class="form-label">Profil Fotoğrafı</label>
-                            <input type="file" class="form-control" id="profile_photo" name="profile_photo" accept="image/*">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="username" class="form-label">Kullanıcı Adı</label>
-                            <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" readonly>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="email" class="form-label">E-posta</label>
-                            <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" readonly>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="birth_date" class="form-label">Doğum Tarihi</label>
-                            <input 
-                                type="date" 
-                                class="form-control" 
-                                id="birth_date" 
-                                name="birth_date" 
-                                value="{{ user.userprofile.birth_date|date:'Y-m-d' }}" 
-                                lang="en" 
-                                pattern="\d{4}-\d{2}-\d{2}">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="university" class="form-label">Üniversite</label>
-                            <input type="text" class="form-control" id="university" name="university" value="{{ user.userprofile.university }}">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="department" class="form-label">Bölüm</label>
-                            <input type="text" class="form-control" id="department" name="department" value="{{ user.userprofile.department }}">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="birthplace" class="form-label">Doğduğu Şehir</label>
-                            <input type="text" class="form-control" id="birthplace" name="birthplace" value="{{ user.userprofile.birthplace }}">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="favorite_band" class="form-label">En Sevdiği Grup</label>
-                            <input type="text" class="form-control" id="favorite_band" name="favorite_band" value="{{ user.userprofile.favorite_band }}">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="gender" class="form-label">Cinsiyet</label>
-                            <select class="form-select" id="gender" name="gender">
-                                <option value="Kadın" {% if user.userprofile.gender == "Kadın" %}selected{% endif %}>Kadın</option>
-                                <option value="Erkek" {% if user.userprofile.gender == "Erkek" %}selected{% endif %}>Erkek</option>
-                                <option value="Diğer" {% if user.userprofile.gender == "Diğer" %}selected{% endif %}>Diğer</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="zodiac_sign" class="form-label">Burç</label>
-                            <input type="text" class="form-control" id="zodiac_sign" name="zodiac_sign" value="{{ user.userprofile.zodiac_sign }}">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="description" class="form-label">Hakkımda</label>
-                            <textarea class="form-control" id="description" name="description" rows="3">{{ user.userprofile.description }}</textarea>
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">Değişiklikleri Kaydet</button>
-                        </div>
-                    </form>
+                    <h5>Friends</h5>
+                    {% if friends %}
+                        <ul class="list-unstyled">
+                            {% for friend in friends %}
+                                <li>{{ friend.username }}</li> {# veya friend.get_full_name #}
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>No friends yet.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
+
+        <!-- Right Column -->
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5>Profile Information</h5>
+                        <button id="edit-profile-button" class="btn btn-primary btn-sm">Edit Profile</button>
+                    </div>
+                    <hr>
+                    <p><strong>Birthday:</strong> {{ profile.birth_date|date:"F d, Y" }}</p>
+                    <p><strong>Gender:</strong> {{ profile.gender|default:"N/A" }}</p>
+                    <p><strong>Birthplace:</strong> {{ profile.birthplace|default:"N/A" }}</p>
+                    <p><strong>Favorite Band:</strong> {{ profile.favorite_band|default:"N/A" }}</p>
+                    <p><strong>Zodiac Sign:</strong> {{ profile.zodiac_sign|default:"N/A" }}</p>
+                    <p><strong>About Me:</strong> {{ profile.description|default:"No description provided." }}</p>
+                    <p><strong>Contact Information:</strong> Email: <a href="mailto:{{ user.email }}">{{ user.email }}</a></p>
+                </div>
+            </div>
+
+            {# The actual edit form can be in a separate modal or page, this is just for display #}
+            {# The form below is just a placeholder based on your previous profile.html content #}
+            {# You might need to adapt this or link to a separate edit page #}
+            <div id="edit-profile-form-container" style="display: none;">
+                 <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Edit Profil Bilgileri</h5>
+                    </div>
+                    <div class="card-body">
+                         <form method="post" enctype="multipart/form-data" action="{% url 'profile' %}">
+                            {% csrf_token %}
+
+                            <div class="mb-3">
+                                <label for="profile_photo" class="form-label">Profil Fotoğrafı</label>
+                                <input type="file" class="form-control" id="profile_photo" name="profile_photo" accept="image/*">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="birth_date" class="form-label">Doğum Tarihi</label>
+                                <input
+                                    type="date"
+                                    class="form-control"
+                                    id="birth_date"
+                                    name="birth_date"
+                                    value="{{ profile.birth_date|date:'Y-m-d' }}"
+                                    lang="en"
+                                    pattern="\d{4}-\d{2}-\d{2}">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="university" class="form-label">Üniversite</label>
+                                <input type="text" class="form-control" id="university" name="university" value="{{ profile.university }}">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="department" class="form-label">Bölüm</label>
+                                <input type="text" class="form-control" id="department" name="department" value="{{ profile.department }}">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="birthplace" class="form-label">Doğduğu Şehir</label>
+                                <input type="text" class="form-control" id="birthplace" name="birthplace" value="{{ profile.birthplace }}">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="favorite_band" class="form-label">En Sevdiği Grup</label>
+                                <input type="text" class="form-control" id="favorite_band" name="favorite_band" value="{{ profile.favorite_band }}">
+                            </div>
+
+                             <div class="mb-3">
+                                <label for="gender" class="form-label">Cinsiyet</label>
+                                <select class="form-select" id="gender" name="gender">
+                                    <option value="Kadın" {% if profile.gender == "Kadın" %}selected{% endif %}>Kadın</option>
+                                    <option value="Erkek" {% if profile.gender == "Erkek" %}selected{% endif %}>Erkek</option>
+                                    <option value="Diğer" {% if profile.gender == "Diğer" %}selected{% endif %}>Diğer</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="zodiac_sign" class="form-label">Burç</label>
+                                <input type="text" class="form-control" id="zodiac_sign" name="zodiac_sign" value="{{ profile.zodiac_sign }}">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Hakkımda</label>
+                                <textarea class="form-control" id="description" name="description" rows="3">{{ profile.description }}</textarea>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">Değişiklikleri Kaydet</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+
+
+        </div>
     </div>
 </div>
+
+<script>
+    document.getElementById('edit-profile-button').addEventListener('click', function() {
+        var formContainer = document.getElementById('edit-profile-form-container');
+        if (formContainer.style.display === 'none') {
+            formContainer.style.display = 'block';
+        } else {
+            formContainer.style.display = 'none';
+        }
+    });
+</script>
 {% endblock %}

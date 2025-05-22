@@ -42,9 +42,9 @@ def register(request):
     return render(request, 'registration/register.html', {'form': form})
 
 @login_required
-@login_required
 def profile(request):
     profile = request.user.userprofile
+    friends = Friend.objects.friends(request.user)
 
     if request.method == 'POST':
         profile.birth_date = request.POST.get('birth_date')
@@ -63,7 +63,10 @@ def profile(request):
         messages.success(request, 'Profil başarıyla güncellendi.')
         return redirect('profile')
 
-    return render(request, 'chat/profile.html')
+    return render(request, 'chat/profile.html', {
+        'profile': profile,
+        'friends': friends
+    })
 
 
 @login_required
@@ -116,7 +119,9 @@ def user_list(request):
     
     # Apply user type filter
     if filter_type == 'friends':
-        friends_ids = Friend.objects.friends(request.user).values_list('id', flat=True)
+        # Değişiklik: Friend.objects.friends bir QuerySet döndürmediği için ID'leri listeden alıyoruz
+        friends_list = Friend.objects.friends(request.user)
+        friends_ids = [friend.id for friend in friends_list]
         users = users.filter(id__in=friends_ids)
     elif filter_type == 'following':
         following_ids = request.user.userprofile.following.values_list('user__id', flat=True)
