@@ -1,0 +1,133 @@
+{% extends 'chat/base.html' %}
+
+{% block title %}Users - Campus Connect{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Arama ve Filtreleme -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-search me-2"></i>Find Users</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="mb-3">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" placeholder="Search users..." value="{{ request.GET.search }}">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="list-group">
+                    <a href="?filter=all" class="list-group-item list-group-item-action {% if not request.GET.filter or request.GET.filter == 'all' %}active{% endif %}">
+                        <i class="fas fa-users me-2"></i>All Users
+                    </a>
+                    <a href="?filter=friends" class="list-group-item list-group-item-action {% if request.GET.filter == 'friends' %}active{% endif %}">
+                        <i class="fas fa-user-friends me-2"></i>Friends
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Friend Requests -->
+        {% if friend_requests %}
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-user-plus me-2"></i>Friend Requests</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for request in friend_requests %}
+                    <div class="list-group-item">
+                        <div class="d-flex align-items-center">
+                            {% if request.from_user.userprofile.avatar %}
+                                <img src="{{ request.from_user.userprofile.avatar.url }}" alt="{{ request.from_user.username }}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                            {% else %}
+                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-user text-white"></i>
+                                </div>
+                            {% endif %}
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0">{{ request.from_user.get_full_name|default:request.from_user.username }}</h6>
+                                <small class="text-muted">@{{ request.from_user.username }}</small>
+                            </div>
+                            <div>
+                                <a href="{% url 'accept_friend_request' request.id %}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-check me-1"></i>Accept
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Kullanıcı Listesi -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>
+                    {% if request.GET.filter == 'friends' %}
+                        Friends
+                    {% else %}
+                        All Users
+                    {% endif %}
+                </h5>
+                <span class="badge bg-light text-dark">{{ users|length }} users</span>
+            </div>
+            <div class="card-body p-0">
+                {% if users %}
+                    <div class="list-group list-group-flush">
+                    {% for user_item in users %}
+                        <div class="list-group-item">
+                            <div class="d-flex align-items-center">
+                                {% if user_item.userprofile.avatar %}
+                                    <img src="{{ user_item.userprofile.avatar.url }}" alt="{{ user_item.username }}" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% else %}
+                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                        <i class="fas fa-user fa-lg text-white"></i>
+                                    </div>
+                                {% endif %}
+                                
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0">{{ user_item.get_full_name|default:user_item.username }}</h6>
+                                    <small class="text-muted">@{{ user_item.username }}</small>
+                                    {% if user_item.userprofile.bio %}
+                                        <p class="mb-0 small text-muted">{{ user_item.userprofile.bio|truncatechars:100 }}</p>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if user_item != request.user %}
+                                    <div class="d-flex gap-2">
+                                        {% if user_item in friends %}
+                                            <button class="btn btn-sm btn-success" disabled>
+                                                <i class="fas fa-user-check me-1"></i>Friends
+                                            </button>
+                                        {% else %}
+                                            <a href="{% url 'send_friend_request' user_item.id %}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-user-plus me-1"></i>Add Friend
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-users text-muted" style="font-size: 4rem;"></i>
+                        <p class="mt-3 text-muted">No users found.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

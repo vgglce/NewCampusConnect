@@ -1,0 +1,16 @@
+Django>=4.2.0
+python-dotenv>=1.0.0
+Pillow>=10.0.0
+django-crispy-forms>=2.0
+crispy-bootstrap5>=0.7
+django-allauth>=0.54.0
+django-environ>=0.10.0
+psycopg2-binary>=2.9.10 
+channels>=4.0.0
+channels-redis>=4.1.0
+django-friendship>=1.9.0
+django-private-chat2>=1.0.0
+whitenoise>=6.0.0
+daphne>=4.0.0 
+requests
+django-cors-headers

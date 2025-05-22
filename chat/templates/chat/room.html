@@ -1,0 +1,163 @@
+{% extends 'chat/base.html' %}
+
+{% block title %}{{ room.name }} - Campus Connect{% endblock %}
+
+{% block content %}
+<div class="container-fluid h-100">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-comments me-2"></i>{{ room.name }}
+                {% if room.is_private %}
+                    <span class="badge bg-warning text-dark ms-2">
+                        <i class="fas fa-lock me-1"></i>Private
+                    </span>
+                {% endif %}
+            </h5>
+        </div>
+        <div class="card-body chat-messages" id="chat-messages" style="height: 400px; overflow-y: auto;">
+            {% for message in messages %}
+            <div class="message {% if message.sender == request.user %}message-sent{% else %}message-received{% endif %} mb-3">
+                <div class="d-flex align-items-start">
+                    {% if message.sender.userprofile.avatar %}
+                        <img src="{{ message.sender.userprofile.avatar.url }}" alt="{{ message.sender.username }}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                            <i class="fas fa-user text-white"></i>
+                        </div>
+                    {% endif %}
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>{{ message.sender.get_full_name|default:message.sender.username }}</strong>
+                            <small class="text-muted">{{ message.timestamp|date:"M d, Y H:i" }}</small>
+                        </div>
+                        <p class="mb-0">{{ message.content }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="card-footer">
+            <form id="chat-form" class="d-flex gap-2">
+                <input type="text" id="chat-message-input" class="form-control" placeholder="Type your message...">
+                <button type="submit" id="chat-message-submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+            <div class="mt-2">
+                <form id="file-upload-form" class="d-flex gap-2">
+                    <input type="file" id="file-input" class="form-control">
+                    <button type="submit" class="btn btn-secondary">
+                        <i class="fas fa-upload"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const roomName = "{{ room.name }}";
+    const currentUserId = "{{ request.user.id }}";
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+    );
+
+    console.log('WebSocket bağlantısı kurulmaya çalışılıyor...');
+
+    chatSocket.onopen = function(e) {
+        console.log('WebSocket bağlantısı başarıyla kuruldu');
+    };
+
+    const messagesList = document.getElementById('chat-messages');
+    const messageInput = document.getElementById('chat-message-input');
+    const messageForm = document.getElementById('chat-form');
+    const fileForm = document.getElementById('file-upload-form');
+
+    // Scroll to bottom of messages
+    function scrollToBottom() {
+        messagesList.scrollTop = messagesList.scrollHeight;
+    }
+
+    // Initially scroll to bottom
+    scrollToBottom();
+
+    chatSocket.onmessage = function(e) {
+        console.log('Yeni mesaj alındı:', e.data);
+        const data = JSON.parse(e.data);
+        console.log('İşlenmiş mesaj verisi:', data);
+        
+        if (data.type === 'chat_message') {
+            // Create message element
+            const messageDiv = document.createElement('div');
+            const isCurrentUser = String(data.user.id) === currentUserId;
+            console.log('Mesaj sahibi kontrol:', { isCurrentUser, userId: data.user.id, currentUserId });
+            
+            messageDiv.className = `message ${isCurrentUser ? 'message-sent' : 'message-received'} mb-3`;
+            
+            messageDiv.innerHTML = `
+                <div class="d-flex align-items-start">
+                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>${data.user.full_name || data.user.username}</strong>
+                            <small class="text-muted">${new Date(data.timestamp).toLocaleString()}</small>
+                        </div>
+                        <p class="mb-0">${data.message}</p>
+                    </div>
+                </div>
+            `;
+            
+            console.log('Oluşturulan mesaj elementi:', messageDiv.outerHTML);
+            messagesList.appendChild(messageDiv);
+            scrollToBottom();
+        } else if (data.type === 'error') {
+            console.error('Mesaj gönderme hatası:', data.message);
+            alert('Mesaj gönderilemedi: ' + data.message);
+        }
+    };
+
+    chatSocket.onclose = function(e) {
+        console.error('Chat socket bağlantısı beklenmedik şekilde kapandı');
+    };
+
+    messageForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const message = messageInput.value.trim();
+        
+        if (message) {
+            console.log('Mesaj gönderiliyor:', message);
+            const messageData = {
+                'type': 'chat_message',
+                'message': message
+            };
+            console.log('Gönderilen veri:', messageData);
+            chatSocket.send(JSON.stringify(messageData));
+            messageInput.value = '';
+        }
+    });
+
+    fileForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const fileInput = document.getElementById('file-input');
+        const file = fileInput.files[0];
+        
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                chatSocket.send(JSON.stringify({
+                    'type': 'file_message',
+                    'filename': file.name,
+                    'content': e.target.result
+                }));
+            };
+            reader.readAsDataURL(file);
+            fileInput.value = '';
+        }
+    });
+</script>
+{% endblock %} 
