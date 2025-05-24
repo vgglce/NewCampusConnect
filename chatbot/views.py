@@ -7,6 +7,8 @@ import logging
 import json
 from functools import lru_cache
 from django.conf import settings
+import traceback
+
 OLLAMA_API_URL = settings.OLLAMA_API_URL
 
 
@@ -91,7 +93,7 @@ def chat_view(request):
             return JsonResponse({'response': bot_reply})
 
         except Exception as e:
-            logger.error(f"View error: {str(e)}")
+            logger.error("Gelen hata:\n" + traceback.format_exc())
             return JsonResponse(
                 {'response': "Üzgünüm, bir hata oluştu. Lütfen daha sonra tekrar deneyin."},
                 status=200
