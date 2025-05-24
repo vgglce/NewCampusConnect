@@ -7,9 +7,10 @@ def ask_ollama(prompt):
             settings.OLLAMA_API_URL,
             json={
                 "model": "mistral",
-                "prompt": prompt
+                "prompt": prompt,
+                "stream": False  # <<< BU SATIR ÖNEMLİ
             },
-            timeout=30
+            timeout=60  # Timeout'u biraz artırdık
         )
         response.raise_for_status()
         data = response.json()
