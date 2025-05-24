@@ -6,9 +6,12 @@ from .models import ChatMessage
 import logging
 import json
 from functools import lru_cache
+from django.conf import settings
+OLLAMA_API_URL = settings.OLLAMA_API_URL
+
 
 logger = logging.getLogger(__name__)
-OLLAMA_API_URL = 'http://cloud-computing-project-master-ollama-1:11434/api/generate'
+
 
 def get_ollama_response(prompt):
     """Ollama API'ye istek gönder"""
