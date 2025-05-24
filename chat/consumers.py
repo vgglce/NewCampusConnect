@@ -2,7 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
-from .models import ChatRoom, Message
+from .models import ChatRoom, Message, DirectMessage
 import logging
 
 logger = logging.getLogger(__name__)
@@ -10,15 +10,28 @@ logger = logging.getLogger(__name__)
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = f'chat_{self.room_name}'
+        self.room_group_name = f'chat_{self.room_name.replace(" ", "_").replace("-", "_").replace(".", "_")}'
         
-        logger.info(f'Yeni bağlantı isteği: {self.room_name}')
+        logger.info(f'Yeni bağlantı isteği: {self.room_name}, Grup adı: {self.room_group_name}')
         
+        # Kullanıcı bilgisini kontrol et
+        user = self.scope.get('user')
+        if user and user.is_authenticated:
+            logger.info(f'Kullanıcı doğrulandı: {user.username} (ID: {user.id})')
+        else:
+            logger.warning('Kullanıcı doğrulanmadı veya anonim.')
+
         # Join room group
-        await self.channel_layer.group_add(
-            self.room_group_name,
-            self.channel_name
-        )
+        try:
+            await self.channel_layer.group_add(
+                self.room_group_name,
+                self.channel_name
+            )
+            logger.info(f'Kanal {self.channel_name}, grup {self.room_group_name} grubuna eklendi.')
+        except Exception as e:
+            logger.error(f'Kanal grubu eklenirken hata oluştu: {str(e)}')
+            await self.close()
+            return # Bağlantıyı kapat ve metottan çık
         
         await self.accept()
         logger.info(f'Bağlantı kabul edildi: {self.room_name}')
@@ -81,35 +94,42 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     @database_sync_to_async
     def save_message(self, message):
-        # Check if it's a direct message room
-        if self.room_name.startswith('dm_'):
-            # For direct messages, we might not save to the ChatRoom model directly
-            # or we might need a different saving mechanism.
-            # For now, skip saving DMs to the database via this method.
-            logger.info(f'Skipping database save for direct message room: {self.room_name}')
-            # Return a dummy object with a timestamp for the consumer to use
-            class DummyMessage:
-                def __init__(self, timestamp):
-                    self.timestamp = timestamp
-            return DummyMessage(timezone.now())
-
-        # Existing logic for group chat rooms
         try:
+            # Check if it's a direct message room
+            if self.room_name.startswith('dm_'):
+                # Parse user IDs from room name (format: dm_user1_user2)
+                user_ids = self.room_name.split('_')[1:]
+                if len(user_ids) != 2:
+                    logger.error(f'Invalid direct message room name format: {self.room_name}')
+                    return None
+                
+                # Determine sender and receiver
+                sender = self.scope['user']
+                receiver_id = user_ids[1] if str(sender.id) == user_ids[0] else user_ids[0]
+                
+                # Save direct message
+                saved_message = DirectMessage.objects.create(
+                    sender=sender,
+                    receiver_id=receiver_id,
+                    content=message,
+                    timestamp=timezone.now()
+                )
+                logger.info(f'Direct message saved to database: {message}')
+                return saved_message
+
+            # Group chat message
             room = ChatRoom.objects.get(name=self.room_name)
             saved_message = Message.objects.create(
                 room=room,
                 sender=self.scope['user'],
                 content=message,
-                timestamp=timezone.now(),
-                is_read=False
+                timestamp=timezone.now()
             )
             logger.info(f'Group message saved to database for room {self.room_name}')
             return saved_message
-        except ChatRoom.DoesNotExist:
-            logger.error(f'ChatRoom not found for room name: {self.room_name}')
-            # Handle the case where a ChatRoom is expected but not found
-            # This might happen if a user tries to send a message to a non-existent group room
-            return None # Indicate that saving failed
+        except Exception as e:
+            logger.error(f'Error saving message: {str(e)}')
+            return None
 
 class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):

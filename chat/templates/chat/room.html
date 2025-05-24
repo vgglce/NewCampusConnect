@@ -26,6 +26,7 @@
             </h5>
         </div>
         <div class="card-body chat-messages" id="chat-messages" style="height: 400px; overflow-y: auto;">
+            {% comment %}
             {% for message in messages %}
             <div class="message {% if message.sender == request.user %}message-sent{% else %}message-received{% endif %} mb-3">
                 <div class="d-flex align-items-start">
@@ -46,6 +47,7 @@
                 </div>
             </div>
             {% endfor %}
+            {% endcomment %}
         </div>
         <div class="card-footer">
             <form id="chat-form" class="d-flex gap-2">
@@ -81,7 +83,7 @@
     {% endif %}
 
     const currentUserId = "{{ request.user.id }}";
-    const chatSocket = new WebSocket(
+    let chatSocket = new WebSocket(
         'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
     );
 
@@ -89,6 +91,10 @@
 
     chatSocket.onopen = function(e) {
         console.log('WebSocket bağlantısı başarıyla kuruldu', roomName);
+    };
+
+    chatSocket.onerror = function(e) {
+        console.error('WebSocket hatası:', e);
     };
 
     const messagesList = document.getElementById('chat-messages');
@@ -142,7 +148,14 @@
     };
 
     chatSocket.onclose = function(e) {
-        console.error('Chat socket bağlantısı beklenmedik şekilde kapandı');
+        console.error('Chat socket bağlantısı beklenmedik şekilde kapandı', e);
+        // Bağlantı koptuğunda yeniden bağlanmayı dene
+        setTimeout(function() {
+            console.log('WebSocket bağlantısı yeniden kurulmaya çalışılıyor...');
+            chatSocket = new WebSocket(
+                'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+            );
+        }, 3000);
     };
 
     messageForm.addEventListener('submit', function(e) {
@@ -156,8 +169,13 @@
                 'message': message
             };
             console.log('Gönderilen veri:', messageData);
-            chatSocket.send(JSON.stringify(messageData));
-            messageInput.value = '';
+            try {
+                chatSocket.send(JSON.stringify(messageData));
+                messageInput.value = '';
+            } catch (error) {
+                console.error('Mesaj gönderme hatası:', error);
+                alert('Mesaj gönderilemedi. Lütfen sayfayı yenileyip tekrar deneyin.');
+            }
         }
     });
 
