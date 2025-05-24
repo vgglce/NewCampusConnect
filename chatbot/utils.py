@@ -8,16 +8,25 @@ def ask_ollama(prompt):
             json={
                 "model": "mistral",
                 "prompt": prompt,
-                "stream": False  # <<< BU SATIR ÖNEMLİ
+                "stream": True
             },
-            timeout=60  # Timeout'u biraz artırdık
+            stream=True,
+            timeout=60
         )
         response.raise_for_status()
-        data = response.json()
-        if "response" in data:
-            return data["response"]
-        else:
-            return f"Beklenmeyen yanıt: {data}"
+
+        full_response = ""
+        for line in response.iter_lines():
+            if line:
+                try:
+                    chunk = line.decode("utf-8")
+                    data = json.loads(chunk)
+                    if "response" in data:
+                        full_response += data["response"]
+                except Exception as e:
+                    continue  # bazı satırlar parse edilemeyebilir
+
+        return full_response or "Yanıt alınamadı."
     except requests.exceptions.Timeout:
         return "Hata: İstek zaman aşımına uğradı."
     except requests.exceptions.HTTPError as err:
