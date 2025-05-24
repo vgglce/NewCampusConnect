@@ -1,5 +1,6 @@
 import requests
 from django.conf import settings
+import json
 
 def ask_ollama(prompt):
     try:
@@ -9,11 +10,19 @@ def ask_ollama(prompt):
                 "model": "mistral",
                 "prompt": prompt
             },
-            timeout=60
+            timeout=60,
+            stream=True
         )
         response.raise_for_status()
-        data = response.json()
-        return data.get("response", "Yanıt alınamadı.")
+
+        full_response = ""
+        for line in response.iter_lines():
+            if line:
+                data = json.loads(line.decode('utf-8'))
+                if "response" in data:
+                    full_response += data["response"]
+
+        return full_response or "Yanıt alınamadı."
     except requests.exceptions.Timeout:
         return "Hata: İstek zaman aşımına uğradı."
     except requests.exceptions.HTTPError as err:
