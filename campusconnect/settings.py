@@ -161,10 +161,6 @@ CHANNEL_LAYERS = {
 }
 CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:65099',
-]
-
-
-CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:52717',
 ]
 

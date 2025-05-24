@@ -9,9 +9,9 @@ def ask_ollama(prompt):
                 "model": "mistral",
                 "prompt": prompt
             },
-            timeout=30  # zaman aşımı ekledik
+            timeout=30
         )
-        response.raise_for_status()  # HTTP hata kodlarını raise etsin
+        response.raise_for_status()
         data = response.json()
         if "response" in data:
             return data["response"]
