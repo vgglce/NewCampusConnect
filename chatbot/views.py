@@ -17,17 +17,17 @@ logger = logging.getLogger(__name__)
 
 def get_ollama_response(prompt):
     """Ollama API'ye istek gönder"""
-    enhanced_prompt = f"""Sen bir Türkçe asistan olarak görev yapıyorsun. Lütfen aşağıdaki kurallara dikkat ederek yanıt ver:
-    ...
+    enhanced_prompt = f"""Sen Türkçe bilen yardımsever bir asistansın. Sorulara nazik ve net yanıtlar ver. 
+    Cevapların sade, açık ve kibar olsun.
     Kullanıcı mesajı: {prompt}"""
 
     payload = {
         "model": "mistral",
         "prompt": enhanced_prompt,
         "stream": False,
-        "temperature": 0.5,
-        "top_p": 0.8,
-        "max_tokens": 100
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 500,
     }
 
     try:
