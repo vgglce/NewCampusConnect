@@ -1,20 +1,22 @@
 import os
 from celery import Celery
 
-# Set the default Django settings module for the 'celery' program.
+# Django ayarlarını varsayılan olarak yükle
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'campusconnect.settings')
 
+# Celery uygulamasını oluştur (broker settings.py'den alınacak)
 app = Celery('campusconnect')
 
-# Using a string here means the worker doesn't have to serialize
-# the configuration object to child processes.
-# - namespace='CELERY' means all celery-related configuration keys
-#   should have a `CELERY_` prefix in settings.py.
+# Ayarları Django settings üzerinden yükle
+# 'CELERY_' prefix'i olan tüm ayarları tanır
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
-# Discover and load tasks from all registered Django apps.
+# Eğer settings.py'de yoksa varsayılan Redis broker'ı kullan
+app.conf.broker_url = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
+
+# Django app’lerindeki tasks.py dosyalarını otomatik tanır
 app.autodiscover_tasks()
 
 @app.task(bind=True, ignore_result=True)
 def debug_task(self):
-    print(f'Request: {self.request!r}') 
+    print(f'Request: {self.request!r}')

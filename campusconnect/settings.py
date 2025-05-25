@@ -82,7 +82,9 @@ TEMPLATES = [
 OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://ollama:11434/api/generate")
 
 
+
 WSGI_APPLICATION = "campusconnect.wsgi.application"
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
 
 
 # Database

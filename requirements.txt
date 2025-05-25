@@ -14,3 +14,6 @@ whitenoise>=6.0.0
 daphne>=4.0.0 
 requests
 django-cors-headers
+celery>=5.0
+celery[redis]
+
