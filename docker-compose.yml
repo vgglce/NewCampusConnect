@@ -14,6 +14,17 @@ services:
       - redis
       - ollama
 
+  worker:
+    build: .
+    command: celery -A campusconnect worker -l INFO
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - db
+
   db:
     image: postgres:13
     volumes:
