@@ -41,11 +41,21 @@ services:
 
   ollama:
     image: ollama/ollama
+    container_name: ollama
     ports:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    restart: always
+    command: >
+      serve 
+      --threads 16 
+      --parallel 4 
+      --mmap
+    environment:
+      - OLLAMA_DEBUG=INFO
+    networks:
+      - default
+
 
 volumes:
   postgres_data:

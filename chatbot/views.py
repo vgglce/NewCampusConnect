@@ -35,7 +35,7 @@ def get_ollama_response(prompt):
             settings.OLLAMA_API_URL,  # 👈 Doğru adres burası
             json=payload,
             headers={'Content-Type': 'application/json'},
-            timeout=30
+            timeout=90
         )
 
         if response.status_code == 200:

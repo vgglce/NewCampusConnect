@@ -10,7 +10,7 @@ def ask_ollama(prompt):
                 "model": "mistral",
                 "prompt": prompt
             },
-            timeout=60,
+            timeout=90,
             stream=True
         )
         response.raise_for_status()
