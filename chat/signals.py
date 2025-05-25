@@ -7,7 +7,7 @@ import json
 
 @receiver(friendship_request_created)
 def send_friend_request_notification(
-    sender, instance, **kwargs
+    sender, instance, created, **kwargs
 ):
     print("Friendship request created signal received.")
     # 'instance' here is the FriendshipRequest object
