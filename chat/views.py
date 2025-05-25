@@ -30,10 +30,10 @@ def register(request):
             # Create user profile
             UserProfile.objects.create(user=user)
             messages.success(request, 'Registration successful! You are now logged in.')
-            login(request, user)  # Kullanıcıyı otomatik giriş yaptır
+            login(request, user)  
             return redirect('home')
         else:
-            # Hataları sadece logla, kullanıcıya genel hata göster
+            
             print('Register form errors:', form.errors)
             messages.error(request, 'Registration failed. Please check your information.')
     else:
@@ -80,40 +80,18 @@ def chat_room(request, room_name):
 
 @login_required
 def direct_message_room(request, user_id):
-    # Get the target user (the friend) or return 404 if not found
+    
     target_user = get_object_or_404(User, id=user_id)
 
-    # Ensure the target user is a friend of the current user (optional but recommended for DMs)
-    # You might want to check this here if only friends should be able to DM each other
-    # from friendship.models import Friend
-    # if not Friend.objects.are_friends(request.user, target_user):
-    #     messages.error(request, f"You are not friends with {target_user.username}.")
-    #     return redirect('profile') # Or redirect to a user list page
-
-    # Create a unique room name for direct messages
-    # Use sorted user IDs to ensure the room name is the same regardless of who initiates the chat
+    
     user_ids = sorted([request.user.id, target_user.id])
     room_name = f'dm_{user_ids[0]}_{user_ids[1]}'
 
-    # For direct messages, we don't necessarily need a ChatRoom model instance
-    # We can directly use the generated room_name for the WebSocket connection
-    # However, if you want to store direct messages like group chat messages
-    # and potentially list past DM conversations, you might create/get a ChatRoom instance here.
-    # For now, let's just pass the room_name and target_user to the template.
-
-    # Fetch existing messages for this DM room if you are storing them in the Message model
-    # Assuming Message model has a 'room' field which we could potentially use to store DM room names
-    # Or you might need a different model/approach for DMs vs group chats
-    # Let's adapt the existing structure to use room_name directly for fetching messages if possible
-    # (Requires changes in Message model or consumer logic to handle DM room names)
-    # For simplicity now, let's just render the template with the room name and target user.
-
-    # You might reuse the existing chat room template or create a new one for DMs
-    # Using the existing one for now:
+    
     return render(request, 'chat/room.html', {
         'room_name': room_name,
-        'target_user': target_user, # Pass target user info to display name etc.
-        'room': None, # Explicitly pass room as None for DMs
+        'target_user': target_user, 
+        'room': None, 
         # 'messages': [] # You might load past messages here
     })
 
@@ -145,10 +123,10 @@ def user_list(request):
     search_query = request.GET.get('search', '')
     filter_type = request.GET.get('filter', 'all')
     
-    # Base queryset
+    
     users = User.objects.exclude(id=request.user.id)
     
-    # Apply search filter
+    
     if search_query:
         users = users.filter(
             Q(username__icontains=search_query) |
@@ -156,9 +134,9 @@ def user_list(request):
             Q(last_name__icontains=search_query)
         )
     
-    # Apply user type filter
+    
     if filter_type == 'friends':
-        # Değişiklik: Friend.objects.friends bir QuerySet döndürmediği için ID'leri listeden alıyoruz
+        
         friends_list = Friend.objects.friends(request.user)
         friends_ids = [friend.id for friend in friends_list]
         users = users.filter(id__in=friends_ids)
@@ -169,7 +147,7 @@ def user_list(request):
         follower_ids = request.user.userprofile.followers.values_list('user__id', flat=True)
         users = users.filter(id__in=follower_ids)
     
-    # Get friend requests and friends list
+    
     friend_requests = Friend.objects.unread_requests(user=request.user)
     friends = Friend.objects.friends(request.user)
     
